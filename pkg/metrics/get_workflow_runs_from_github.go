@@ -45,6 +45,8 @@ func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 		return *run.Event
 	case "status":
 		return *run.Status
+	case "conclusion":
+		return run.GetConclusion()
 	}
 	log.Printf("Tried to fetch invalid field '%s'", field)
 	return ""
