@@ -127,6 +127,7 @@ func getWorkflowRunsFromGithub() {
 				fields := getRelevantFields(repo, run)
 
 				workflowRunStatusGauge.WithLabelValues(fields...).Set(s)
+				workflowRunTotalGauge.WithLabelValues(fields...).Set(1)
 
 				var run_usage *github.WorkflowRunUsage = nil
 				if config.Metrics.FetchWorkflowRunUsage {

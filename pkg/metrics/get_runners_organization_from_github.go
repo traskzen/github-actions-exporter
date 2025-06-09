@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spendesk/github-actions-exporter/pkg/config"
@@ -18,7 +19,7 @@ var (
 			Name: "github_runner_organization_status",
 			Help: "runner status",
 		},
-		[]string{"organization", "os", "name", "id", "busy"},
+		[]string{"organization", "os", "name", "id", "busy", "status", "all_labels"},
 	)
 )
 
@@ -46,16 +47,25 @@ func getAllOrgRunners(orga string) []*github.Runner {
 	return runners
 }
 
+func runnerLabelsToString(runner *github.Runner) string {
+    var labels []string
+    for _, label := range runner.Labels {
+		labels = append(labels, label.GetName())
+    }
+    return strings.Join(labels, ",")
+}
+
 // getRunnersOrganizationFromGithub - return information about runners and their status for an organization
 func getRunnersOrganizationFromGithub() {
 	for {
 		for _, orga := range config.Github.Organizations.Value() {
 			runners := getAllOrgRunners(orga)
 			for _, runner := range runners {
+				labels_str := runnerLabelsToString(runner)
 				if runner.GetStatus() == "online" {
-					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy())).Set(1)
+					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy()), labels_str).Set(1)
 				} else {
-					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy())).Set(0)
+					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy()), labels_str).Set(0)
 				}
 			}
 		}
