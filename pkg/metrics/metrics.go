@@ -22,7 +22,6 @@ var (
 	client                   *github.Client
 	err                      error
 	workflowRunStatusGauge   *prometheus.GaugeVec
-	workflowRunTotalGauge    *prometheus.GaugeVec
 	workflowRunDurationGauge *prometheus.GaugeVec
 )
 
@@ -30,15 +29,8 @@ var (
 func InitMetrics() {
 	workflowRunStatusGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "github_workflow_run_status",
+			Name: "github_tr_workflow_run_status",
 			Help: "Workflow run status of all workflow runs created in the last 12hr",
-		},
-		strings.Split(config.WorkflowFields, ","),
-	)
-	workflowRunTotalGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "github_workflow_run_total",
-			Help: "Total of workflow runs created in the last 12hr",
 		},
 		strings.Split(config.WorkflowFields, ","),
 	)
@@ -52,10 +44,10 @@ func InitMetrics() {
 	prometheus.MustRegister(runnersGauge)
 	prometheus.MustRegister(runnersOrganizationGauge)
 	prometheus.MustRegister(workflowRunStatusGauge)
-	prometheus.MustRegister(workflowRunTotalGauge)
 	prometheus.MustRegister(workflowRunDurationGauge)
 	prometheus.MustRegister(workflowBillGauge)
 	prometheus.MustRegister(runnersEnterpriseGauge)
+
 
 	client, err = NewClient()
 	if err != nil {

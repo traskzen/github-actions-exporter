@@ -113,21 +113,9 @@ func getWorkflowRunsFromGithub() {
 			runs := getRecentWorkflowRuns(r[0], r[1])
 
 			for _, run := range runs {
-				var s float64 = 0
-				if run.GetConclusion() == "success" {
-					s = 1
-				} else if run.GetConclusion() == "skipped" {
-					s = 2
-				} else if run.GetConclusion() == "in_progress" {
-					s = 3
-				} else if run.GetConclusion() == "queued" {
-					s = 4
-				}
-
 				fields := getRelevantFields(repo, run)
 
-				workflowRunStatusGauge.WithLabelValues(fields...).Set(s)
-				workflowRunTotalGauge.WithLabelValues(fields...).Set(1)
+				workflowRunStatusGauge.WithLabelValues(fields...).Set(1)
 
 				var run_usage *github.WorkflowRunUsage = nil
 				if config.Metrics.FetchWorkflowRunUsage {
