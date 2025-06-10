@@ -90,6 +90,31 @@ func getRecentWorkflowRuns(owner string, repo string) []*github.WorkflowRun {
 	return runs
 }
 
+func getJobRunsFromWorkflow(owner string, repo string, run_id int64) []*github.WorkflowJob {
+	opt := &github.ListWorkflowJobsOptions{
+		ListOptions: github.ListOptions{PerPage: 200},
+	}
+	var runs []*github.WorkflowJob
+	for {
+		resp, rr, err := client.Actions.ListWorkflowJobs(context.Background(), owner, repo, run_id, opt)
+		if rl_err, ok := err.(*github.RateLimitError); ok {
+			log.Printf("ListWorkflowJobs ratelimited. Pausing until %s", rl_err.Rate.Reset.Time.String())
+			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
+			continue
+		} else if err != nil {
+			log.Printf("ListWorkflowJobs error for repo %s/%s: %s", owner, repo, err.Error())
+			return runs
+		}
+
+		runs = append(runs, resp.Jobs...)
+		if rr.NextPage == 0 {
+			break
+		}
+		opt.Page = rr.NextPage
+	}
+	return runs
+}
+
 func getRunUsage(owner string, repo string, runId int64) *github.WorkflowRunUsage {
 	for {
 		resp, _, err := client.Actions.GetWorkflowRunUsageByID(context.Background(), owner, repo, runId)
@@ -117,6 +142,17 @@ func getWorkflowRunsFromGithub() {
 
 				workflowRunStatusGauge.WithLabelValues(fields...).Set(1)
 
+				// get job run data
+				job_runs := getJobRunsFromWorkflow(r[0], r[1], *run.ID)
+				for _, job_run := range job_runs {
+					all_labels := strings.Join(job_run.Labels, ",")
+					clean_name := strings.ReplaceAll(job_run.GetName(), "\n", "")
+					workflowJobTotalGauge.WithLabelValues(strconv.FormatInt(
+						job_run.GetID(), 10), clean_name, all_labels, strconv.FormatInt(job_run.GetRunnerID(), 10),
+						job_run.GetRunnerName(), job_run.GetStatus(), job_run.GetConclusion()).Set(1)
+				}
+
+				// get usage of hosted runners
 				var run_usage *github.WorkflowRunUsage = nil
 				if config.Metrics.FetchWorkflowRunUsage {
 					run_usage = getRunUsage(r[0], r[1], *run.ID)

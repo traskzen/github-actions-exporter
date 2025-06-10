@@ -23,6 +23,7 @@ var (
 	err                      error
 	workflowRunStatusGauge   *prometheus.GaugeVec
 	workflowRunDurationGauge *prometheus.GaugeVec
+	workflowJobTotalGauge    *prometheus.GaugeVec
 )
 
 // InitMetrics - register metrics in prometheus lib and start func for monitor
@@ -41,12 +42,20 @@ func InitMetrics() {
 		},
 		strings.Split(config.WorkflowFields, ","),
 	)
+	workflowJobTotalGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_job_total",
+			Help: "Total number of workflow jobs for all workflow runs scanned",
+		},
+		[]string{"id", "name", "labels_str", "runner_id", "runner_name", "status", "conclusion"},
+	)
 	prometheus.MustRegister(runnersGauge)
 	prometheus.MustRegister(runnersOrganizationGauge)
 	prometheus.MustRegister(workflowRunStatusGauge)
 	prometheus.MustRegister(workflowRunDurationGauge)
 	prometheus.MustRegister(workflowBillGauge)
 	prometheus.MustRegister(runnersEnterpriseGauge)
+	prometheus.MustRegister(workflowJobTotalGauge)
 
 
 	client, err = NewClient()
