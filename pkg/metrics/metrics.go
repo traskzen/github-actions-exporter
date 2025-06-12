@@ -24,6 +24,7 @@ var (
 	workflowRunStatusGauge   *prometheus.GaugeVec
 	workflowRunDurationGauge *prometheus.GaugeVec
 	workflowJobTotalGauge    *prometheus.GaugeVec
+	completedWorkflowJobGauge *prometheus.GaugeVec
 )
 
 // InitMetrics - register metrics in prometheus lib and start func for monitor
@@ -49,13 +50,22 @@ func InitMetrics() {
 		},
 		[]string{"id", "name", "labels_str", "runner_id", "runner_name", "status", "conclusion"},
 	)
+	completedWorkflowJobGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_job_completed_v1",
+			Help: "Completed workflow job status; 0: failed; 1: success; 2: cancelled; 3: skipped",
+		},
+		[]string{"id", "name", "labels_str", "runner_name"},
+	)
 	prometheus.MustRegister(runnersGauge)
 	prometheus.MustRegister(runnersOrganizationGauge)
+	prometheus.MustRegister(runnersOrganizationGaugeTR)
 	prometheus.MustRegister(workflowRunStatusGauge)
 	prometheus.MustRegister(workflowRunDurationGauge)
 	prometheus.MustRegister(workflowBillGauge)
 	prometheus.MustRegister(runnersEnterpriseGauge)
 	prometheus.MustRegister(workflowJobTotalGauge)
+	prometheus.MustRegister(completedWorkflowJobGauge)
 
 
 	client, err = NewClient()
@@ -71,11 +81,11 @@ func InitMetrics() {
 		}
 	}
 
-	go getBillableFromGithub()
-	go getRunnersFromGithub()
+	// go getBillableFromGithub()
+	// go getRunnersFromGithub()
 	go getRunnersOrganizationFromGithub()
 	go getWorkflowRunsFromGithub()
-	go getRunnersEnterpriseFromGithub()
+	// go getRunnersEnterpriseFromGithub()
 }
 
 // NewClient creates a Github Client

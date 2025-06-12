@@ -115,6 +115,22 @@ func getJobRunsFromWorkflow(owner string, repo string, run_id int64) []*github.W
 	return runs
 }
 
+func getJobRunConclusionCode(conclusion string) float64 {
+	switch conclusion {
+	case "success":
+		return 1
+	case "failure":
+		return 0
+	case "cancelled":
+		return 2
+	case "skipped":
+		return 3
+	default:
+		log.Printf("No known mapping for job conclusion '%s'. Returning -1", conclusion)
+		return -1
+	}
+}
+
 func getRunUsage(owner string, repo string, runId int64) *github.WorkflowRunUsage {
 	for {
 		resp, _, err := client.Actions.GetWorkflowRunUsageByID(context.Background(), owner, repo, runId)
@@ -147,9 +163,16 @@ func getWorkflowRunsFromGithub() {
 				for _, job_run := range job_runs {
 					all_labels := strings.Join(job_run.Labels, ",")
 					clean_name := strings.ReplaceAll(job_run.GetName(), "\n", "")
-					workflowJobTotalGauge.WithLabelValues(strconv.FormatInt(
-						job_run.GetID(), 10), clean_name, all_labels, strconv.FormatInt(job_run.GetRunnerID(), 10),
-						job_run.GetRunnerName(), job_run.GetStatus(), job_run.GetConclusion()).Set(1)
+					run_id := strconv.FormatInt(*run.ID, 10)
+					runner_id := strconv.FormatInt(job_run.GetRunnerID(), 10)
+					job_status := job_run.GetStatus()
+					runner_name := job_run.GetRunnerName()
+					job_conclusion := job_run.GetConclusion()
+					workflowJobTotalGauge.WithLabelValues(run_id, clean_name, all_labels,
+						runner_id, runner_name, job_status, job_conclusion).Set(1)
+					if job_status == "completed" {
+						completedWorkflowJobGauge.WithLabelValues(run_id, clean_name, all_labels, runner_name).Set(getJobRunConclusionCode(job_conclusion))
+					}
 				}
 
 				// get usage of hosted runners

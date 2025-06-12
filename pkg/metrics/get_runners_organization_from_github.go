@@ -21,6 +21,13 @@ var (
 		},
 		[]string{"organization", "os", "name", "id", "busy", "status", "all_labels"},
 	)
+	runnersOrganizationGaugeTR = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_tr_runner_organization_current_status",
+			Help: "runner status: 0: offline; 1: idle; 2: active; -1: unknown",
+		},
+		[]string{"organization", "os", "name", "id", "all_labels"},
+	)
 )
 
 func getAllOrgRunners(orga string) []*github.Runner {
@@ -55,6 +62,21 @@ func runnerLabelsToString(runner *github.Runner) string {
     return strings.Join(labels, ",")
 }
 
+func runnerStatusToCode(runner *github.Runner) float64 {
+	s := runner.GetStatus()
+	if s == "offline" {
+		return 0
+	} else if s == "online" {
+		if runner.GetBusy() {
+			return 2
+		} else {
+			return 1
+		}
+	}
+	log.Printf("Unknown runner status: '%s'. Returning -1", s)
+	return -1
+}
+
 // getRunnersOrganizationFromGithub - return information about runners and their status for an organization
 func getRunnersOrganizationFromGithub() {
 	for {
@@ -63,10 +85,12 @@ func getRunnersOrganizationFromGithub() {
 			for _, runner := range runners {
 				labels_str := runnerLabelsToString(runner)
 				runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy()), runner.GetStatus(), labels_str).Set(1)
+				runnersOrganizationGaugeTR.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), labels_str).Set(runnerStatusToCode(runner))
 			}
 		}
 
 		time.Sleep(time.Duration(config.Github.Refresh) * time.Second)
 		runnersOrganizationGauge.Reset()
+		runnersOrganizationGaugeTR.Reset()
 	}
 }
