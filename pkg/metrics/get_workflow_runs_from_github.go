@@ -154,9 +154,21 @@ func getWorkflowRunsFromGithub() {
 			runs := getRecentWorkflowRuns(r[0], r[1])
 
 			for _, run := range runs {
+				var s float64 = 0
+				wfr_status := *run.Status
+				if wfr_status == "completed" {
+					s = 1
+				} else if wfr_status == "queued" {
+					s = 2
+				} else if wfr_status == "in_progress" {
+					s = 3
+				} else if wfr_status == "pending" {
+					s = 4
+				}
+
 				fields := getRelevantFields(repo, run)
 
-				workflowRunStatusGauge.WithLabelValues(fields...).Set(1)
+				workflowRunStatusGauge.WithLabelValues(fields...).Set(s)
 
 				// get job run data
 				job_runs := getJobRunsFromWorkflow(r[0], r[1], *run.ID)
@@ -192,5 +204,6 @@ func getWorkflowRunsFromGithub() {
 		}
 
 		time.Sleep(time.Duration(config.Github.Refresh) * time.Second)
+		workflowRunStatusGauge.Reset()
 	}
 }

@@ -31,8 +31,8 @@ var (
 func InitMetrics() {
 	workflowRunStatusGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "github_tr_workflow_run_status",
-			Help: "Workflow run status of all workflow runs created in the last 12hr",
+			Name: "github_workflow_run_status_v2",
+			Help: "Current workflow run status: 1-4: completed,in_progress,queued,pending",
 		},
 		strings.Split(config.WorkflowFields, ","),
 	)
