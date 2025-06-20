@@ -22,9 +22,6 @@ var (
 	client                   *github.Client
 	err                      error
 	workflowRunStatusGauge   *prometheus.GaugeVec
-	workflowRunDurationGauge *prometheus.GaugeVec
-	workflowJobTotalGauge    *prometheus.GaugeVec
-	completedWorkflowJobGauge *prometheus.GaugeVec
 )
 
 // InitMetrics - register metrics in prometheus lib and start func for monitor
@@ -36,36 +33,11 @@ func InitMetrics() {
 		},
 		strings.Split(config.WorkflowFields, ","),
 	)
-	workflowRunDurationGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "github_workflow_run_duration_ms",
-			Help: "Workflow run duration (in milliseconds) of all workflow runs created in the last 12hr",
-		},
-		strings.Split(config.WorkflowFields, ","),
-	)
-	workflowJobTotalGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "github_workflow_job_total",
-			Help: "Total number of workflow jobs for all workflow runs scanned",
-		},
-		[]string{"id", "name", "labels_str", "runner_id", "runner_name", "status", "conclusion"},
-	)
-	completedWorkflowJobGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "github_workflow_job_completed_v1",
-			Help: "Completed workflow job status; 0: failed; 1: success; 2: cancelled; 3: skipped",
-		},
-		[]string{"id", "name", "labels_str", "runner_name"},
-	)
 	prometheus.MustRegister(runnersGauge)
 	prometheus.MustRegister(runnersOrganizationGauge)
-	prometheus.MustRegister(runnersOrganizationGaugeTR)
 	prometheus.MustRegister(workflowRunStatusGauge)
-	prometheus.MustRegister(workflowRunDurationGauge)
 	prometheus.MustRegister(workflowBillGauge)
 	prometheus.MustRegister(runnersEnterpriseGauge)
-	prometheus.MustRegister(workflowJobTotalGauge)
-	prometheus.MustRegister(completedWorkflowJobGauge)
 
 
 	client, err = NewClient()
@@ -81,6 +53,7 @@ func InitMetrics() {
 		}
 	}
 
+	// disable metrics we aren't using; save b/w + api calls; tlr 2025.06.20
 	// go getBillableFromGithub()
 	// go getRunnersFromGithub()
 	go getRunnersOrganizationFromGithub()

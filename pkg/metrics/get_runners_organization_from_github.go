@@ -16,13 +16,6 @@ import (
 var (
 	runnersOrganizationGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "github_tr_runner_organization_status",
-			Help: "runner status",
-		},
-		[]string{"organization", "os", "name", "id", "busy", "status", "all_labels"},
-	)
-	runnersOrganizationGaugeTR = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
 			Name: "github_tr_runner_organization_current_status",
 			Help: "runner status: 0: offline; 1: idle; 2: active; -1: unknown",
 		},
@@ -84,13 +77,11 @@ func getRunnersOrganizationFromGithub() {
 			runners := getAllOrgRunners(orga)
 			for _, runner := range runners {
 				labels_str := runnerLabelsToString(runner)
-				runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy()), runner.GetStatus(), labels_str).Set(1)
-				runnersOrganizationGaugeTR.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), labels_str).Set(runnerStatusToCode(runner))
+				runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), labels_str).Set(runnerStatusToCode(runner))
 			}
 		}
 
 		time.Sleep(time.Duration(config.Github.Refresh) * time.Second)
 		runnersOrganizationGauge.Reset()
-		runnersOrganizationGaugeTR.Reset()
 	}
 }
